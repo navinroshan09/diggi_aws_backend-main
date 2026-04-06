@@ -308,9 +308,10 @@ def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retr
     last_exception = None
     for attempt in range(1, max_retries + 1):
         try:
+            # Use SYSTEM_PROMPT_B which is specifically designed for JSON schema enforcement
             response = client.beta.chat.completions.parse(
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT_A},
+                    {"role": "system", "content": SYSTEM_PROMPT_B},
                     {"role": "user", "content": USER_PROMPT}
                 ],
                 model="openai/gpt-oss-120b",
@@ -321,6 +322,26 @@ def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retr
         except Exception as e:
             last_exception = e
             print(f"Attempt {attempt}/{max_retries} failed: {e}")
+            
+            # Manual fallback if parse fails
+            if "schema" in str(e).lower():
+                try:
+                    print("Attempting manual JSON fallback...")
+                    fallback_response = client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT_B},
+                            {"role": "user", "content": USER_PROMPT}
+                        ],
+                        model="openai/gpt-oss-120b",
+                        temperature=0.1
+                    )
+                    content = fallback_response.choices[0].message.content
+                    if "```json" in content:
+                        content = content.split("```json")[1].split("```")[0]
+                    return ArticleAnalysis.model_validate_json(content.strip())
+                except Exception as fallback_e:
+                    print(f"Fallback also failed: {fallback_e}")
+
             if attempt < max_retries:
                 print(f"Retrying in {retry_delay}s...")
                 time.sleep(retry_delay)
