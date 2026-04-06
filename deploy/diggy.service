@@ -1,0 +1,18 @@
+[Unit]
+Description=Diggy Func AWS - FastAPI News Analysis Service
+After=network.target
+
+[Service]
+Type=simple
+User=diggy
+Group=diggy
+WorkingDirectory=/opt/diggy_func_aws
+EnvironmentFile=/opt/diggy_func_aws/.env
+ExecStart=/opt/diggy_func_aws/venv/bin/uvicorn api.index:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
