@@ -1,5 +1,4 @@
 from urllib import response
-
 from openai import OpenAI
 import os
 from enum import Enum
