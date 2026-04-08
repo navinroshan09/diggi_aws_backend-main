@@ -12,11 +12,11 @@ def create_connection():
     """
     try:
         conn = psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
+            host=os.getenv("DB_HOST", "ec2-3-93-174-181.compute-1.amazonaws.com"),
             port=os.getenv("DB_PORT", "5432"),
-            database=os.getenv("DB_NAME", "Diggi_db"),
+            database=os.getenv("DB_NAME", "diggi_login_db"),
             user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD", "")
+            password=os.getenv("DB_PASSWORD", "Rs@181075")
         )
         return conn
     except Exception as e:
