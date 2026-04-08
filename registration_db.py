@@ -1,25 +1,23 @@
-import psycopg2
-import bcrypt
 import os
+
+import bcrypt
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def create_connection():
     """
     Create a connection to the PostgreSQL database.
     Uses environment variables for database credentials.
     """
-    # try:
-    #     conn = psycopg2.connect(
-    #         host=os.getenv("DB_HOST", "localhost"),
-    #         database=os.getenv("DB_NAME", "your_db"),
-    #         user=os.getenv("DB_USER", "your_user"),
-    #         password=os.getenv("DB_PASSWORD", "your_password")
-    #     )
-    try:        
+    try:
         conn = psycopg2.connect(
-            host="localhost",
-            database="Diggi_db",
-            user="postgres",
-            password=""
+            host=os.getenv("DB_HOST", "localhost"),
+            port=os.getenv("DB_PORT", "5432"),
+            database=os.getenv("DB_NAME", "Diggi_db"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD", "")
         )
         return conn
     except Exception as e:

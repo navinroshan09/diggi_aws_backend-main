@@ -2,6 +2,8 @@ fastapi
 uvicorn
 openai
 python-dotenv
+psycopg2-binary
+bcrypt
 google-search-results
 trafilatura
 pydantic
