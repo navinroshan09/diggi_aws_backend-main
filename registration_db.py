@@ -88,8 +88,11 @@ def insert_user(data):
         cur.execute(sql, values)
         conn.commit()
         print("User inserted successfully")
+        return True
     except Exception as e:
+        conn.rollback()
         print(f"Error inserting user: {e}")
+        raise
     finally:
         cur.close()
         conn.close()
