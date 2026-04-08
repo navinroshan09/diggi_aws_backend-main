@@ -355,8 +355,8 @@ def get_refined_suggestions(query):
     
     PROMPT = f"""
     The user provided a very vague or broad search query: '{query}'.
-    Please provide exactly 4 specific, trending, or highly relevant news-style search queries that would yield better analytical results.
-    
+    Please provide exactly 4 specific, trending, or highly relevant news-style search queries that would yield better analytical results and the recent news relates to the topic.
+
     Return the suggestions as a JSON list of strings only.
     Example:
     ["Iran-Israel conflict updates 2024", "Iran's nuclear program international response", "Economic sanctions on Iran analysis", "Iran-Russia military cooperation"]

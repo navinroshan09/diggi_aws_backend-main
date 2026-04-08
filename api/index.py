@@ -17,7 +17,7 @@ async def summary(req: QueryRequest):
         suggestions = get_refined_suggestions(query)
         return {
             "status": "vague",
-            "message": f"'{query}' is too broad. Please try one of the suggested specific topics.",
+            "message": f"'{query}' is too vague. if you want you can try one of the suggested specific topics.",
             "suggestions": suggestions
         }
 
