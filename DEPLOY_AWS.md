@@ -95,7 +95,7 @@ sudo systemctl status diggy
 
 Test the endpoint:
 ```bash
-curl -X POST http://<EC2_PUBLIC_IP>/summary \
+curl -X POST http://thediggi.com/summary \
   -H "Content-Type: application/json" \
   -d '{"query": "latest tech news"}'
 ```
@@ -121,7 +121,7 @@ If you have a domain name pointing to your EC2 IP:
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d thediggi.com -d www.thediggi.com
 ```
 
 Certbot will automatically update Nginx config and set up auto-renewal.

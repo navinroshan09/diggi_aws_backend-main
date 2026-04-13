@@ -1,15 +1,57 @@
-from fastapi import HTTPException
-from fastapi import FastAPI
+import os
+import psycopg2
+from dotenv import load_dotenv
+from fastapi import HTTPException, FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import bcrypt
 from main import get_supper_summary, get_refined_suggestions
-from registration_db import insert_user, create_connection, create_table
+
+load_dotenv()
+
+def create_connection():
+    """Create a connection to the PostgreSQL database."""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST", "thediggi.com"),
+            port=os.getenv("DB_PORT", "5432"),
+            database=os.getenv("DB_NAME", "diggi_login_db"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD", "Rs@181075")
+        )
+        return conn
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        return None
+
+def insert_user(data):
+    """Insert a new user into the users table."""
+    conn = create_connection()
+    if conn is None:
+        return
+    cur = conn.cursor()
+    hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    sql = """
+    INSERT INTO users (full_name, phone, country, gender, date_of_birth, profile_pic, email, password)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    values = (data['full_name'], data['phone'], data['country'], data['gender'],
+              data['date_of_birth'], data['profile_pic'], data['email'], hashed_password)
+    try:
+        cur.execute(sql, values)
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://thediggi.com", "http://www.thediggi.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -91,6 +133,3 @@ async def summary(req: QueryRequest):
         "data": result.dict()
     }
 
-@app.on_event("startup")
-def startup():
-    create_table()
