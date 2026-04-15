@@ -25,8 +25,10 @@ def fetch_top_news(query, serp_api_key=SERP_API_KEY, num_results=6):
         "site:bbc.com OR site:cnn.com OR site:reuters.com OR site:theguardian.com OR "
         "site:cnbc.com OR site:apnews.com OR site:aljazeera.com OR site:npr.org OR "
         "site:cbsnews.com OR site:abcnews.go.com OR site:nbcnews.com OR site:usatoday.com OR "
-        "site:politico.com OR site:foxnews.com"
-    )
+        "site:politico.com OR site:foxnews.com OR "
+        "site:indianexpress.com OR site:thehindu.com OR site:hindustantimes.com OR "
+        "site:timesofindia.indiatimes.com OR site:ndtv.com OR site:news18.com"
+)
     refined_query = f"{query} ({trusted_sites})"
 
     params = {
