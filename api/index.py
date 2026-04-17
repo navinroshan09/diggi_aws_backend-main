@@ -73,6 +73,16 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserProfileRequest(BaseModel):
+    email: str
+    full_name: str | None = None
+    phone: str | None = None
+    country: str | None = None
+    gender: str | None = None
+    date_of_birth: str | None = None
+    profile_pic: str | None = None
+
+
 @app.post("/register")
 async def register(user: UserRegister):
     try:
@@ -106,6 +116,120 @@ async def login(user: UserLogin):
         cur.close()
         conn.close()
 
+
+@app.get("/profile")
+async def get_profile(email: str):
+    conn = create_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT email, full_name, phone, country, gender, date_of_birth, profile_pic
+            FROM users
+            WHERE email = %s
+            """,
+            (email,),
+        )
+        row = cur.fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        return {
+            "status": "success",
+            "data": {
+                "email": row[0],
+                "full_name": row[1] or "",
+                "phone": row[2] or "",
+                "country": row[3] or "",
+                "gender": row[4] or "",
+                "date_of_birth": row[5].isoformat() if row[5] else "",
+                "profile_pic": row[6] or "",
+            },
+        }
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/profile")
+async def update_profile(user: UserProfileRequest):
+    conn = create_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT email FROM users WHERE email = %s", (user.email,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        fields = []
+        values = []
+
+        if user.full_name is not None:
+            fields.append("full_name = %s")
+            values.append(user.full_name)
+        if user.phone is not None:
+            fields.append("phone = %s")
+            values.append(user.phone)
+        if user.country is not None:
+            fields.append("country = %s")
+            values.append(user.country)
+        if user.gender is not None:
+            fields.append("gender = %s")
+            values.append(user.gender)
+        if user.date_of_birth is not None:
+            fields.append("date_of_birth = %s")
+            values.append(user.date_of_birth)
+        if user.profile_pic is not None:
+            fields.append("profile_pic = %s")
+            values.append(user.profile_pic)
+
+        if not fields:
+            raise HTTPException(status_code=400, detail="No profile fields provided")
+
+        values.append(user.email)
+        sql = f"UPDATE users SET {', '.join(fields)} WHERE email = %s"
+        cur.execute(sql, tuple(values))
+        conn.commit()
+
+        cur.execute(
+            """
+            SELECT email, full_name, phone, country, gender, date_of_birth, profile_pic
+            FROM users
+            WHERE email = %s
+            """,
+            (user.email,),
+        )
+        row = cur.fetchone()
+
+        return {
+            "status": "success",
+            "message": "Profile updated successfully",
+            "data": {
+                "email": row[0],
+                "full_name": row[1] or "",
+                "phone": row[2] or "",
+                "country": row[3] or "",
+                "gender": row[4] or "",
+                "date_of_birth": row[5].isoformat() if row[5] else "",
+                "profile_pic": row[6] or "",
+            },
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
 class QueryRequest(BaseModel):
     query: str
 
@@ -132,4 +256,3 @@ async def summary(req: QueryRequest):
         "status": "success",
         "data": result.dict()
     }
-
