@@ -5,7 +5,8 @@ from fastapi import HTTPException, FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import bcrypt
-from main import get_supper_summary, get_refined_suggestions
+from main import get_supper_summary, get_refined_suggestions, get_top_news_with_content
+from credibility import compute_credibility, get_confidence_label
 
 load_dotenv()
 
@@ -233,26 +234,73 @@ async def update_profile(user: UserProfileRequest):
 class QueryRequest(BaseModel):
     query: str
 
+# @app.post("/summary")
+# async def summary(req: QueryRequest):
+#     query = req.query.strip()
+#     words = query.split()
+    
+#     # Check if query is vague (consistent with Streamlit)
+#     if len(words) < 3:
+#         suggestions = get_refined_suggestions(query)
+#         return {
+#             "status": "vague",
+#             "message": f"'{query}' is too vague. if you want you can try one of the suggested specific topics.",
+#             "suggestions": suggestions
+#         }
+
+#     result = get_supper_summary(query)
+
+#     if result is None:
+#         return {"status": "error", "message": "Failed to generate summary"}
+
+#     return {
+#         "status": "success",
+#         "data": result.dict()
+#     }
 @app.post("/summary")
 async def summary(req: QueryRequest):
     query = req.query.strip()
     words = query.split()
-    
-    # Check if query is vague (consistent with Streamlit)
+
     if len(words) < 3:
         suggestions = get_refined_suggestions(query)
         return {
             "status": "vague",
-            "message": f"'{query}' is too vague. if you want you can try one of the suggested specific topics.",
+            "message": f"'{query}' is too vague.if you want you can try one of the suggested specific topics.",
             "suggestions": suggestions
         }
 
-    result = get_supper_summary(query)
+    # ✅ STEP 1: Fetch ONCE
+    articles = get_top_news_with_content(query)
+
+    if not articles:
+        return {"status": "error", "message": "No articles found"}
+
+    # ✅ STEP 2: AI processing
+    result = get_supper_summary(articles)
 
     if result is None:
         return {"status": "error", "message": "Failed to generate summary"}
 
+    # ✅ STEP 3: Ensure list
+    if not isinstance(result, list):
+        result = [result]
+
+    # ✅ STEP 4: Credibility enhancement
+    for i, article_analysis in enumerate(result):
+        article = articles[i]
+
+        claims = [
+            c.claim for c in article_analysis.claim_level_focus.claims
+        ]
+
+        score = compute_credibility(article, articles, claims)
+
+        article_analysis.credibility_signals.source_reliability = str(score)
+        article_analysis.credibility_signals.confidence_level = get_confidence_label(score)
+
+    # ✅ STEP 5: Return
     return {
         "status": "success",
-        "data": result.dict()
+        "data": [r.dict() for r in result]
     }

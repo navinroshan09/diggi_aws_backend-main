@@ -3,6 +3,7 @@ import json
 import os
 from dotenv import load_dotenv
 from main import get_supper_summary, get_top_news_with_content, SERP_API_KEY, GROQ_API_KEY, get_refined_suggestions
+from credibility import compute_credibility, get_confidence_label
 
 # Load environment variables
 load_dotenv()
@@ -125,13 +126,29 @@ if run_analysis:
                     status.update(label="Analysis failed.", state="error")
                 else:
                     st.write(f"Step 2: Analyzing {len(articles)} articles...")
-                    analysis = get_supper_summary(query, serp_api_key=api_key_serp, num_results=num_results)
+                    analysis = get_supper_summary(articles)
                     
                     if not analysis:
                         st.error("Failed to generate analytical report.")
                         status.update(label="Analysis failed.", state="error")
                     else:
                         status.update(label="Analysis complete!", state="complete", expanded=False)
+                        
+                        # Enhance articles with calculated credibility scores
+                        claims_list = [c.claim for c in analysis.claim_level_focus.claims]
+                        total_score = 0
+                        for article in articles:
+                            score = compute_credibility(article, articles, claims_list)
+                            article["credibility_score"] = score
+                            article["credibility_label"] = get_confidence_label(score)
+                            total_score += score
+                            
+                        # Update global signals with average
+                        if articles:
+                            avg_score = round(total_score / len(articles), 3)
+                            analysis.credibility_signals.source_reliability = str(avg_score)
+                            analysis.credibility_signals.confidence_level = get_confidence_label(avg_score)
+                            
                         st.session_state.articles = articles
                         st.session_state.analysis = analysis
 
@@ -147,10 +164,11 @@ if 'analysis' in st.session_state and st.session_state.analysis:
         with cols[i]:
             st.markdown(f"""
             <div class="article-card">
-                <img src="{article['thumbnail']}" style="width:100%; border-radius:5px;">
-                <h4>{article['title']}</h4>
+                <img src="{article['thumbnail']}" style="width:100%; border-radius:5px; height: 150px; object-fit: cover;">
+                <h4 style="margin-top: 10px; height: 60px; overflow: hidden;">{article['title']}</h4>
                 <p><strong>Source:</strong> {article['source']}</p>
-                <a href="{article['link']}" target="_blank">Read Original</a>
+                <p><strong>Credibility:</strong> <span style="color: {'#28a745' if article.get('credibility_label') == 'High' else '#ffc107' if article.get('credibility_label') == 'Medium' else '#dc3545'}; font-weight: bold;">{article.get('credibility_score', 'N/A')} ({article.get('credibility_label', 'N/A')})</span></p>
+                <a href="{article['link']}" target="_blank" style="color: #007bff; text-decoration: none;">Read Original</a>
             </div>
             """, unsafe_allow_html=True)
     

@@ -11,6 +11,7 @@ from typing import Optional, List
 load_dotenv()
 from typing import Union
 from schemas import ArticleAnalysis
+from credibility import compute_credibility, get_confidence_label
 
 SERP_API_KEY = os.getenv("SERP_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -197,11 +198,32 @@ Rules:
 - If information is unavailable write "Not mentioned"""
 
 
-def get_summary(query, serp_api_key=SERP_API_KEY, num_results=3):
-    articles = get_top_news_with_content(query, serp_api_key, num_results)
+# def get_summary(query, serp_api_key=SERP_API_KEY, num_results=3):
+#     articles = get_top_news_with_content(query, serp_api_key, num_results)
+#     if not articles:
+#         print("No articles found to summarize.")
+#         return None
+#     USER_PROMPT = f"""
+#     Analyze the following articles using the Diggi framework.
+
+#     Articles:
+#     {json.dumps(articles, indent=2)}
+#     """
+
+#     response = client.responses.create(
+#     model="meta-llama/llama-4-scout-17b-16e-instruct",
+#     input=[
+#         {"role": "system", "content": SYSTEM_PROMPT_A},
+#         {"role": "user", "content": USER_PROMPT}
+#     ],
+#     temperature=0.2,
+#     )
+#     return response.output_text
+def get_summary(articles):
     if not articles:
         print("No articles found to summarize.")
         return None
+
     USER_PROMPT = f"""
     Analyze the following articles using the Diggi framework.
 
@@ -210,13 +232,14 @@ def get_summary(query, serp_api_key=SERP_API_KEY, num_results=3):
     """
 
     response = client.responses.create(
-    model="meta-llama/llama-4-scout-17b-16e-instruct",
-    input=[
-        {"role": "system", "content": SYSTEM_PROMPT_A},
-        {"role": "user", "content": USER_PROMPT}
-    ],
-    temperature=0.2,
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        input=[
+            {"role": "system", "content": SYSTEM_PROMPT_A},
+            {"role": "user", "content": USER_PROMPT}
+        ],
+        temperature=0.2,
     )
+
     return response.output_text
 
 SYSTEM_PROMPT_B = """You are a neutral news analysis assistant that converts raw news articles into structured analytical data.
@@ -283,8 +306,10 @@ Be precise, structured, and neutral."""
 
 import time
 
-def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retries=3, retry_delay=2):
-    total_summary = get_summary(query, serp_api_key, num_results=3)
+def get_supper_summary(articles, max_retries=3, retry_delay=2):
+# def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retries=3, retry_delay=2):
+    # total_summary = get_summary(query, serp_api_key, num_results=3)
+    total_summary = get_summary(articles)
     if not total_summary:
         print("No summary generated.")
         return None
@@ -349,6 +374,30 @@ def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retr
 
     print(f"All {max_retries} attempts failed. Last error: {last_exception}")
     return None
+
+def enhance_credibility(structured_output, articles):
+    """
+    Overrides AI-generated credibility with calculated score.
+    """
+
+    # If your output is a list:
+    for i, article_analysis in enumerate(structured_output):
+
+        article = articles[i]
+
+        # Extract claims from LLM output
+        claims = [
+            c.claim for c in article_analysis.claim_level_focus.claims
+        ]
+
+        # Compute score
+        score = compute_credibility(article, articles, claims)
+
+        # Override fields
+        article_analysis.credibility_signals.source_reliability = str(score)
+        article_analysis.credibility_signals.confidence_level = get_confidence_label(score)
+
+    return structured_output
 
 def get_refined_suggestions(query):
     """Generates 4 high-quality search suggestions for a vague query."""
