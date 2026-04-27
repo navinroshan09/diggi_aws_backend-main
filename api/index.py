@@ -52,7 +52,7 @@ def insert_user(data):
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://thediggi.com", "http://www.thediggi.com", "http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://thediggi.com", "http://www.thediggi.com", "http://localhost:5173", "http://localhost:3000", "https://diggi-app.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
