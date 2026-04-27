@@ -67,6 +67,7 @@ class UserRegister(BaseModel):
     profile_pic: str
     email: str
     password: str
+    confirm_password: str
 
 
 class UserLogin(BaseModel):
@@ -86,6 +87,8 @@ class UserProfileRequest(BaseModel):
 
 @app.post("/register")
 async def register(user: UserRegister):
+    if user.password != user.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
     try:
         insert_user(user.dict())
         return {"status": "success", "message": "User created"}
