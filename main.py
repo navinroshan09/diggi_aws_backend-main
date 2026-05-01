@@ -104,7 +104,7 @@ def extract_article(url):
         return None
 
 
-def get_top_news_with_content(query, serp_api_key=SERP_API_KEY, num_results=6):
+def get_top_news_with_content(query, serp_api_key=SERP_API_KEY, num_results=3):
     """Fetches top news articles and extracts their content."""
     news_results, error = fetch_top_news(query, serp_api_key, num_results)
     
@@ -306,8 +306,8 @@ Be precise, structured, and neutral."""
 
 import time
 
-def get_supper_summary(articles, max_retries=3, retry_delay=2):
-# def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retries=3, retry_delay=2):
+def get_supper_summary(articles, max_retries=3, retry_delay=15):
+# def get_supper_summary(query, serp_api_key=SERP_API_KEY, num_results=3, max_retries=3, retry_delay=15):
     # total_summary = get_summary(query, serp_api_key, num_results=3)
     total_summary = get_summary(articles)
     if not total_summary:
